@@ -3,17 +3,22 @@ let currentPage = 'dashboard';
 let cart = [];
 let votedElections = new Set();
 let paidInvoices = new Set();
-let currentTheme = localStorage.getItem('ra_portal_theme') || 'original';
+const VALID_THEMES = ['refined','warm','power'];
+let currentTheme = (function() {
+  const stored = localStorage.getItem('ra_portal_theme');
+  return VALID_THEMES.includes(stored) ? stored : 'refined';
+})();
 
 // ── THEME SWITCHING ─────────────────────────────────────────────────────────
 function setTheme(theme) {
+  if (!VALID_THEMES.includes(theme)) theme = 'refined';
   currentTheme = theme;
   document.body.setAttribute('data-theme', theme);
   localStorage.setItem('ra_portal_theme', theme);
   document.querySelectorAll('.theme-bar-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === theme);
   });
-  if (currentPage === 'dashboard') navigate('dashboard');
+  navigate(currentPage);
 }
 
 // ── WIDGET STORAGE ────────────────────────────────────────────────────────────
@@ -191,6 +196,17 @@ function renderNav() {
     }
   });
   document.getElementById('nav-items').innerHTML = html;
+  renderPowerNav();
+}
+
+function renderPowerNav() {
+  const el = document.getElementById('power-nav-items');
+  if (!el) return;
+  el.innerHTML = NAV.filter(n => n.id).map(n => {
+    const active = currentPage === n.id ? ' active' : '';
+    const badge = n.badge ? `<span class="power-nav-badge">${n.badge}</span>` : '';
+    return `<button class="power-nav-link${active}" onclick="navigate('${n.id}')">${n.label}${badge}</button>`;
+  }).join('');
 }
 
 // ── MOBILE SIDEBAR ────────────────────────────────────────────────────────────
@@ -412,8 +428,9 @@ const Pages = {
 
   // ── DASHBOARD ──────────────────────────────────────────────────────────────
   dashboard() {
-    if (currentTheme === 'sleek') return dashboardSleek();
+    if (currentTheme === 'refined') return dashboardRefined();
     if (currentTheme === 'warm') return dashboardWarm();
+    if (currentTheme === 'power') return dashboardPower();
 
     const activity = DATA.activity.map(a => `
       <div class="activity-item">
@@ -899,23 +916,25 @@ Object.assign(Pages, {
 
 }); // end Object.assign(Pages, ...)
 
-// ── DASHBOARD: SLEEK & PROFESSIONAL ──────────────────────────────────────────
-function dashboardSleek() {
-  const activity = DATA.activity.map(a => `
+// ── SHARED DASHBOARD HELPERS ─────────────────────────────────────────────────
+function _activityHtml() {
+  return DATA.activity.map(a => `
     <div class="activity-item">
       <div class="activity-dot" style="background:${a.dot}"></div>
       <div class="activity-body"><p>${a.text}</p><span>${a.sub}</span></div>
       <span class="activity-time">${a.time}</span>
     </div>`).join('');
-
-  const ceProgress = DATA.courses.inProgress.map(c => `
+}
+function _ceHtml() {
+  return DATA.courses.inProgress.map(c => `
     <div class="progress-wrap">
       <div class="progress-meta"><span>${c.title}</span><strong>${c.pct}%</strong></div>
       <div class="progress-bar"><div class="progress-fill" style="width:${c.pct}%"></div></div>
       <div class="progress-sub">Deadline: ${c.deadline} &bull; ${c.module}</div>
     </div>`).join('');
-
-  const widgets = loadWidgets().map((w, i) => `
+}
+function _widgetsHtml() {
+  return loadWidgets().map((w, i) => `
     <div class="widget-card" style="position:relative">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="card-title" style="margin:0">${w.title}</div>
@@ -923,142 +942,155 @@ function dashboardSleek() {
       </div>
       ${w.html}
     </div>`).join('');
-
+}
+function _ssoRow() {
+  return DATA.ssoServices.slice(0,4).map(s =>
+    `<div class="tile" onclick="navigate('resources')"><div class="tile-icon">${s.icon}</div><div class="tile-label">${s.name.split('\u2014')[0].trim()}</div></div>`
+  ).join('');
+}
+function _boardWidgets() {
   return `
-    <div class="page-header">
-      <h2>Good morning, Jordan</h2>
-      <p>Monday, March 2, 2026 &mdash; 4 action items require your attention</p>
+    <div class="widget-card">
+      <div class="card-title" style="margin-bottom:8px;">Market Statistics</div>
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">Active listings (Nov\u2013Mar)</div>
+      <div class="mini-chart"><div class="bar" style="height:30%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:45%"></div><div class="bar hi" style="height:80%"></div><div class="bar hi" style="height:70%"></div></div>
+      <div class="chart-labels"><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span></div>
     </div>
-
-    <div class="card section-gap">
-      <div class="card-title">Priority Actions</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div class="priority-actions-item urgent">
-          <span style="font-size:15px">💳</span>
-          <div style="flex:1"><div class="font-600 text-sm">Invoice #5021 &mdash; $79 due March 30</div><div class="text-xs text-muted">MLS Analytics Add-on &bull; Payment overdue</div></div>
-          <button class="btn btn-primary btn-xs" onclick="openPayModal('i1')">Pay Now</button>
-        </div>
-        <div class="priority-actions-item warning">
-          <span style="font-size:15px">📋</span>
-          <div style="flex:1"><div class="font-600 text-sm">RSVP Overdue &mdash; RPAC Steering Group</div><div class="text-xs text-muted">Mar 5 &bull; Zoom &bull; 2:00 PM</div></div>
-          <button class="btn btn-secondary btn-xs" onclick="showToast('Contact Liaison: RPAC Steering Group')">Contact Liaison</button>
-        </div>
-        <div class="priority-actions-item info">
-          <span style="font-size:15px">🗳️</span>
-          <div style="flex:1"><div class="font-600 text-sm">Vote Now &mdash; Association Treasurer</div><div class="text-xs text-muted">Voting closes March 21, 2026</div></div>
-          <button class="btn btn-primary btn-xs" onclick="navigate('elections')">Cast Vote</button>
-        </div>
-        <div class="priority-actions-item warning">
-          <span style="font-size:15px">🎓</span>
-          <div style="flex:1"><div class="font-600 text-sm">CE Module &mdash; Fair Housing &amp; Ethics 2026</div><div class="text-xs text-muted">72% complete &bull; Deadline Apr 12</div></div>
-          <button class="btn btn-secondary btn-xs" onclick="navigate('courses')">Continue</button>
-        </div>
-      </div>
+    <div class="widget-card">
+      <div class="card-title" style="margin-bottom:10px;">Board News</div>
+      <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>2026 Legislative Priorities Released</strong></p><span>Feb 28 &bull; Government Affairs</span></div></div>
+      <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>New forms library update live</strong></p><span>Feb 22 &bull; Education</span></div></div>
+      <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>Member appreciation event &mdash; Apr 4</strong></p><span>Feb 15 &bull; Events</span></div></div>
     </div>
-
-    <div class="stats-row">
-      <div class="stat-card success"><div class="stat-label">Membership Status</div><div class="stat-value success">Active</div><div class="stat-sub">REALTOR&reg; &bull; District 4 &bull; Since 2018</div></div>
-      <div class="stat-card danger"><div class="stat-label">Outstanding Balance</div><div class="stat-value danger">$79</div><div class="stat-sub">Invoice #5021 &bull; Due Mar 30</div></div>
-      <div class="stat-card warn"><div class="stat-label">CE Progress</div><div class="stat-value warn">10 / 14</div><div class="stat-sub">4 credits remaining &bull; Jun 30 deadline</div></div>
-      <div class="stat-card"><div class="stat-label">Action Items</div><div class="stat-value">4</div><div class="stat-sub">RSVP, vote, invoice, CE module</div></div>
-    </div>
-
-    <div class="card-title" style="margin-bottom:12px;">Quick Access</div>
-    <div class="tile-grid section-gap">
-      <div class="tile" onclick="navigate('calendar')"><div class="tile-icon">📅</div><div class="tile-label">Calendar</div><div class="tile-sub">8 events this month</div><span class="tile-badge info">3 open</span></div>
-      <div class="tile" onclick="navigate('courses')"><div class="tile-icon">🎓</div><div class="tile-label">Courses</div><div class="tile-sub">2 in progress</div><span class="tile-badge info">2 active</span></div>
-      <div class="tile" onclick="navigate('meetings')"><div class="tile-icon">📋</div><div class="tile-label">Meetings</div><div class="tile-sub">1 RSVP overdue</div><span class="tile-badge action">Overdue</span></div>
-      <div class="tile" onclick="navigate('directory')"><div class="tile-icon">👥</div><div class="tile-label">Directory</div><div class="tile-sub">4,200+ members</div><span class="tile-badge neutral">Search</span></div>
-      <div class="tile" onclick="navigate('contribute')"><div class="tile-icon">💚</div><div class="tile-label">RPAC</div><div class="tile-sub">50% of pledge goal</div><span class="tile-badge warn">50%</span></div>
-      <div class="tile" onclick="navigate('committees')"><div class="tile-icon">🏛️</div><div class="tile-label">Committees</div><div class="tile-sub">2 active</div><span class="tile-badge ok">Active</span></div>
-      <div class="tile" onclick="navigate('billing')"><div class="tile-icon">💳</div><div class="tile-label">Billing</div><div class="tile-sub">1 outstanding</div><span class="tile-badge action">$79 due</span></div>
-      <div class="tile" onclick="navigate('elections')"><div class="tile-icon">🗳️</div><div class="tile-label">Elections</div><div class="tile-sub">Closes Mar 21</div><span class="tile-badge action">Vote</span></div>
-      <div class="tile" onclick="navigate('store')"><div class="tile-icon">🛍️</div><div class="tile-label">Store</div><div class="tile-sub">Forms &amp; toolkits</div><span class="tile-badge neutral">Browse</span></div>
-      <div class="tile" onclick="navigate('resources')"><div class="tile-icon">🔗</div><div class="tile-label">Resources</div><div class="tile-sub">MLS, zipForm, DotLoop</div><span class="tile-badge ok">6 links</span></div>
-    </div>
-
-    <div class="grid-2 section-gap">
-      <div class="card">
-        <div class="card-title">Recent Activity <a href="#" onclick="return false">View all</a></div>
-        ${activity}
-      </div>
-      <div class="card">
-        <div class="card-title">Continuing Education <a href="#" onclick="navigate('courses');return false">All courses</a></div>
-        ${ceProgress}
-        <div class="mt-12"><button class="btn btn-primary btn-sm" onclick="navigate('courses')">Continue Learning &rarr;</button></div>
-      </div>
-    </div>
-
-    <div class="card section-gap">
-      <div class="card-title">Integrated Services <a href="#" onclick="navigate('resources');return false">All resources</a></div>
-      <div class="tile-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0">
-        ${DATA.ssoServices.slice(0,4).map(s => `<div class="tile" onclick="navigate('resources')"><div class="tile-icon">${s.icon}</div><div class="tile-label">${s.name.split('\u2014')[0].trim()}</div></div>`).join('')}
-      </div>
-    </div>
-
-    <div class="card-title" style="margin-bottom:12px;margin-top:22px;">Board Content <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.78rem;color:var(--muted)">&mdash; Custom HTML, JS, or iframe widgets</span></div>
-    <div class="widget-grid">
-      <div class="widget-card">
-        <div class="card-title" style="margin-bottom:8px;">Market Statistics</div>
-        <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">Active listings (Nov\u2013Mar)</div>
-        <div class="mini-chart"><div class="bar" style="height:30%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:45%"></div><div class="bar hi" style="height:80%"></div><div class="bar hi" style="height:70%"></div></div>
-        <div class="chart-labels"><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span></div>
-      </div>
-      <div class="widget-card">
-        <div class="card-title" style="margin-bottom:10px;">Board News</div>
-        <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>2026 Legislative Priorities Released</strong></p><span>Feb 28 &bull; Government Affairs</span></div></div>
-        <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>New forms library update live</strong></p><span>Feb 22 &bull; Education</span></div></div>
-        <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>Member appreciation event &mdash; Apr 4</strong></p><span>Feb 15 &bull; Events</span></div></div>
-      </div>
-      ${widgets}
-      <div class="widget-add-card" onclick="openWidgetEditor()">
-        <div style="font-size:24px;color:var(--muted)">+</div>
-        <div style="font-size:.82rem;font-weight:600;color:var(--muted)">Add Custom Widget</div>
-        <div style="font-size:.74rem;color:#cbd5e1;text-align:center">Paste HTML, an iframe, or<br>any embed code here.</div>
-      </div>
+    ${_widgetsHtml()}
+    <div class="widget-add-card" onclick="openWidgetEditor()">
+      <div style="font-size:24px;color:var(--muted)">+</div>
+      <div style="font-size:.82rem;font-weight:600;color:var(--muted)">Add Custom Widget</div>
+      <div style="font-size:.74rem;color:var(--muted);text-align:center">HTML, iframe, or JS embed</div>
     </div>`;
 }
 
-// ── DASHBOARD: FRIENDLY & INVITING ───────────────────────────────────────────
-function dashboardWarm() {
-  const activity = DATA.activity.map(a => `
-    <div class="activity-item">
-      <div class="activity-dot" style="background:${a.dot}"></div>
-      <div class="activity-body"><p>${a.text}</p><span>${a.sub}</span></div>
-      <span class="activity-time">${a.time}</span>
-    </div>`).join('');
-
-  const ceProgress = DATA.courses.inProgress.map(c => `
-    <div class="progress-wrap">
-      <div class="progress-meta"><span>${c.title}</span><strong>${c.pct}%</strong></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${c.pct}%"></div></div>
-      <div class="progress-sub">Deadline: ${c.deadline} &bull; ${c.module}</div>
-    </div>`).join('');
-
-  const widgets = loadWidgets().map((w, i) => `
-    <div class="widget-card" style="position:relative">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="card-title" style="margin:0">${w.title}</div>
-        <button onclick="openWidgetEditor(${i})" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:var(--muted);padding:2px 6px;border-radius:4px;line-height:1" title="Edit widget">Edit</button>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// VARIATION 1 — REFINED PROFESSIONAL
+// Executive-level, high density, minimal decoration, 5-col tiles, 3-col content
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function dashboardRefined() {
+  const upcoming = DATA.events.slice(0,3).map(e => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="background:var(--bg);border-radius:4px;padding:4px 8px;text-align:center;min-width:36px;flex-shrink:0">
+        <div style="font-size:.9rem;font-weight:700;line-height:1">${e.day}</div>
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">${e.mo}</div>
       </div>
-      ${w.html}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.8rem;font-weight:600">${e.title}</div>
+        <div style="font-size:.7rem;color:var(--muted)">${e.location}</div>
+      </div>
+      <span class="badge ${e.badge}" style="font-size:.62rem">${e.badgeText}</span>
     </div>`).join('');
 
+  return `
+    <div class="page-header" style="margin-bottom:16px">
+      <h2 style="font-size:1.15rem">Good morning, Jordan</h2>
+      <p style="font-size:.82rem">Monday, March 2, 2026 &mdash; 4 action items require attention</p>
+    </div>
+
+    <div class="card section-gap" style="padding:14px">
+      <div class="card-title" style="margin-bottom:8px">Priority Actions</div>
+      <div class="refined-actions">
+        <div class="refined-action-row urgent">
+          <span class="ra-icon">&#128179;</span>
+          <div class="ra-text"><strong>Invoice #5021 &mdash; $79 due March 30</strong><span>MLS Analytics Add-on</span></div>
+          <button class="btn btn-primary btn-xs" onclick="openPayModal('i1')">Pay Now</button>
+        </div>
+        <div class="refined-action-row warn">
+          <span class="ra-icon">&#128203;</span>
+          <div class="ra-text"><strong>RSVP Overdue &mdash; RPAC Steering Group</strong><span>Mar 5 &bull; Zoom &bull; 2:00 PM</span></div>
+          <button class="btn btn-secondary btn-xs" onclick="showToast('Contact Liaison: RPAC Steering Group')">Respond</button>
+        </div>
+        <div class="refined-action-row info">
+          <span class="ra-icon">&#128499;&#65039;</span>
+          <div class="ra-text"><strong>Vote Now &mdash; Association Treasurer</strong><span>Voting closes March 21</span></div>
+          <button class="btn btn-primary btn-xs" onclick="navigate('elections')">Vote</button>
+        </div>
+        <div class="refined-action-row warn">
+          <span class="ra-icon">&#127891;</span>
+          <div class="ra-text"><strong>CE Module &mdash; Fair Housing &amp; Ethics 2026</strong><span>72% complete &bull; Apr 12 deadline</span></div>
+          <button class="btn btn-secondary btn-xs" onclick="navigate('courses')">Resume</button>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="stats-row">
+      <div class="stat-card success"><div class="stat-label">Membership</div><div class="stat-value success">Active</div><div class="stat-sub">REALTOR&reg; &bull; District 4 &bull; Since 2018</div></div>
+      <div class="stat-card danger"><div class="stat-label">Balance Due</div><div class="stat-value danger">$79</div><div class="stat-sub">Invoice #5021 &bull; Due Mar 30</div></div>
+      <div class="stat-card warn"><div class="stat-label">CE Credits</div><div class="stat-value warn">10 / 14</div><div class="stat-sub">4 remaining &bull; Jun 30 deadline</div></div>
+      <div class="stat-card"><div class="stat-label">Actions</div><div class="stat-value">4</div><div class="stat-sub">RSVP, vote, invoice, CE</div></div>
+    </div>
+
+    <div class="card-title" style="margin-bottom:8px;">Quick Access</div>
+    <div class="tile-grid section-gap">
+      <div class="tile" onclick="navigate('calendar')"><div class="tile-icon">&#128197;</div><div class="tile-label">Calendar</div><div class="tile-sub">8 events</div><span class="tile-badge info">3 open</span></div>
+      <div class="tile" onclick="navigate('courses')"><div class="tile-icon">&#127891;</div><div class="tile-label">Courses</div><div class="tile-sub">2 active</div><span class="tile-badge info">2</span></div>
+      <div class="tile" onclick="navigate('meetings')"><div class="tile-icon">&#128203;</div><div class="tile-label">Meetings</div><div class="tile-sub">1 overdue</div><span class="tile-badge action">!</span></div>
+      <div class="tile" onclick="navigate('directory')"><div class="tile-icon">&#128101;</div><div class="tile-label">Directory</div><div class="tile-sub">4,200+</div><span class="tile-badge neutral">&#128269;</span></div>
+      <div class="tile" onclick="navigate('contribute')"><div class="tile-icon">&#128154;</div><div class="tile-label">RPAC</div><div class="tile-sub">50%</div><span class="tile-badge warn">50%</span></div>
+      <div class="tile" onclick="navigate('committees')"><div class="tile-icon">&#127963;&#65039;</div><div class="tile-label">Committees</div><div class="tile-sub">2 active</div><span class="tile-badge ok">&#10003;</span></div>
+      <div class="tile" onclick="navigate('billing')"><div class="tile-icon">&#128179;</div><div class="tile-label">Billing</div><div class="tile-sub">$79 due</div><span class="tile-badge action">$79</span></div>
+      <div class="tile" onclick="navigate('elections')"><div class="tile-icon">&#128499;&#65039;</div><div class="tile-label">Elections</div><div class="tile-sub">Mar 21</div><span class="tile-badge action">Vote</span></div>
+      <div class="tile" onclick="navigate('store')"><div class="tile-icon">&#128717;&#65039;</div><div class="tile-label">Store</div><div class="tile-sub">Forms</div><span class="tile-badge neutral">&#8594;</span></div>
+      <div class="tile" onclick="navigate('resources')"><div class="tile-icon">&#128279;</div><div class="tile-label">Resources</div><div class="tile-sub">SSO</div><span class="tile-badge ok">6</span></div>
+    </div>
+
+    <div class="grid-3-equal section-gap">
+      <div class="card">
+        <div class="card-title">Recent Activity <a href="#" onclick="return false">View all</a></div>
+        ${_activityHtml()}
+      </div>
+      <div class="card">
+        <div class="card-title">CE Progress <a href="#" onclick="navigate('courses');return false">Courses</a></div>
+        ${_ceHtml()}
+        <div class="mt-12"><button class="btn btn-primary btn-xs" onclick="navigate('courses')">Continue &rarr;</button></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Upcoming Events <a href="#" onclick="navigate('calendar');return false">Calendar</a></div>
+        ${upcoming}
+      </div>
+    </div>
+
+    <div class="card section-gap" style="padding:14px">
+      <div class="card-title">Integrated Services <a href="#" onclick="navigate('resources');return false">All resources</a></div>
+      <div class="tile-grid" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:0;gap:8px">
+        ${DATA.ssoServices.map(s => `<div class="tile" onclick="navigate('resources')"><div class="tile-icon">${s.icon}</div><div class="tile-label">${s.name.split('\u2014')[0].trim()}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-bottom:8px;margin-top:16px;">Board Content <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.74rem;color:var(--muted)">&mdash; Custom HTML/JS widgets</span></div>
+    <div class="widget-grid">${_boardWidgets()}</div>`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// VARIATION 2 — WARM & MEMBER-FRIENDLY
+// Consumer-app hero, large tiles, warm palette, less technical feel
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function dashboardWarm() {
   return `
     <div class="hero-banner">
       <div class="hero-top">
         <div class="hero-avatar-lg">JL</div>
         <div class="hero-greeting">
           <h2>Welcome back, Jordan! &#128075;</h2>
-          <p>Residential Broker &bull; District 4 &bull; NRDS# 12345678 &bull; Member since 2018</p>
+          <p>Residential Broker &bull; District 4 &bull; Member since 2018</p>
+          <div class="hero-stats">
+            <div><div class="hero-stat-value" style="color:var(--success)">Active</div><div class="hero-stat-label">Membership</div></div>
+            <div><div class="hero-stat-value" style="color:var(--danger)">$79</div><div class="hero-stat-label">Balance Due</div></div>
+            <div><div class="hero-stat-value" style="color:var(--warning)">10 / 14</div><div class="hero-stat-label">CE Credits</div></div>
+          </div>
         </div>
       </div>
       <div class="hero-panels">
         <div class="hero-panel">
-          <div class="hero-panel-header">
-            <span class="hero-panel-icon">&#128276;</span>
-            <span class="hero-panel-title">Notifications</span>
-          </div>
+          <div class="hero-panel-header"><span class="hero-panel-icon">&#128276;</span><span class="hero-panel-title">Notifications</span></div>
           <div class="hero-panel-value">4 action items</div>
           <ul>
             <li>Invoice #5021 &mdash; $79 due Mar 30</li>
@@ -1068,10 +1100,7 @@ function dashboardWarm() {
           </ul>
         </div>
         <div class="hero-panel">
-          <div class="hero-panel-header">
-            <span class="hero-panel-icon">&#128176;</span>
-            <span class="hero-panel-title">Account Balance</span>
-          </div>
+          <div class="hero-panel-header"><span class="hero-panel-icon">&#128176;</span><span class="hero-panel-title">Account Balance</span></div>
           <div class="hero-panel-value">$79.00 due</div>
           <div class="hero-balance-sub">Invoice #5021 &bull; MLS Analytics Add-on &bull; Due Mar 30</div>
           <div style="display:flex;gap:8px">
@@ -1082,66 +1111,124 @@ function dashboardWarm() {
       </div>
     </div>
 
-    <div class="stats-row">
-      <div class="stat-card success"><div class="stat-label">Membership</div><div class="stat-value success">Active</div><div class="stat-sub">REALTOR&reg; &bull; Dist. 4 &bull; Since 2018</div></div>
-      <div class="stat-card danger"><div class="stat-label">Balance Due</div><div class="stat-value danger">$79</div><div class="stat-sub">Invoice #5021 &bull; Due Mar 30</div></div>
-      <div class="stat-card warn"><div class="stat-label">CE Credits</div><div class="stat-value warn">10 / 14</div><div class="stat-sub">4 remaining &bull; Deadline Jun 30</div></div>
-      <div class="stat-card"><div class="stat-label">Open Actions</div><div class="stat-value">4</div><div class="stat-sub">RSVP, vote, invoice, CE module</div></div>
-    </div>
-
-    <div class="card-title" style="margin-bottom:12px;">Quick Launch</div>
+    <div class="card-title" style="margin-bottom:14px;">What would you like to do?</div>
     <div class="tile-grid section-gap">
-      <div class="tile" onclick="navigate('calendar')"><div class="tile-icon">&#128197;</div><div class="tile-label">Calendar</div><div class="tile-sub">8 events in March</div><span class="tile-badge info">3 open</span></div>
-      <div class="tile" onclick="navigate('courses')"><div class="tile-icon">&#127891;</div><div class="tile-label">My Courses</div><div class="tile-sub">2 in progress</div><span class="tile-badge info">2 active</span></div>
-      <div class="tile" onclick="navigate('meetings')"><div class="tile-icon">&#128203;</div><div class="tile-label">Meetings</div><div class="tile-sub">1 RSVP overdue</div><span class="tile-badge action">Overdue</span></div>
-      <div class="tile" onclick="navigate('directory')"><div class="tile-icon">&#128101;</div><div class="tile-label">Directory</div><div class="tile-sub">4,200+ members</div><span class="tile-badge neutral">Search</span></div>
-      <div class="tile" onclick="navigate('contribute')"><div class="tile-icon">&#128154;</div><div class="tile-label">Contribute</div><div class="tile-sub">50% of RPAC goal</div><span class="tile-badge warn">50%</span></div>
-      <div class="tile" onclick="navigate('committees')"><div class="tile-icon">&#127963;&#65039;</div><div class="tile-label">Committees</div><div class="tile-sub">2 active memberships</div><span class="tile-badge ok">Active</span></div>
-      <div class="tile" onclick="navigate('billing')"><div class="tile-icon">&#128179;</div><div class="tile-label">Billing</div><div class="tile-sub">1 invoice outstanding</div><span class="tile-badge action">$79 due</span></div>
-      <div class="tile" onclick="navigate('elections')"><div class="tile-icon">&#128499;&#65039;</div><div class="tile-label">Elections</div><div class="tile-sub">Voting open Mar 21</div><span class="tile-badge action">Vote now</span></div>
-      <div class="tile" onclick="navigate('store')"><div class="tile-icon">&#128717;&#65039;</div><div class="tile-label">Online Store</div><div class="tile-sub">Forms &amp; toolkits</div><span class="tile-badge neutral">Browse</span></div>
-      <div class="tile" onclick="navigate('resources')"><div class="tile-icon">&#128279;</div><div class="tile-label">Resources &amp; SSO</div><div class="tile-sub">MLS, zipForm, DotLoop...</div><span class="tile-badge ok">6 links</span></div>
+      <div class="tile" onclick="navigate('calendar')"><div class="tile-icon">&#128197;</div><div class="tile-label">Events &amp; Calendar</div><div class="tile-sub">Browse 8 upcoming events, register, and RSVP to meetings</div><span class="tile-badge info">3 open</span></div>
+      <div class="tile" onclick="navigate('courses')"><div class="tile-icon">&#127891;</div><div class="tile-label">My Courses</div><div class="tile-sub">Continue your CE credits &mdash; 2 courses in progress</div><span class="tile-badge info">2 active</span></div>
+      <div class="tile" onclick="navigate('meetings')"><div class="tile-icon">&#128203;</div><div class="tile-label">Meetings</div><div class="tile-sub">View upcoming committee and governance meetings</div><span class="tile-badge action">1 overdue</span></div>
+      <div class="tile" onclick="navigate('billing')"><div class="tile-icon">&#128179;</div><div class="tile-label">Billing &amp; Payments</div><div class="tile-sub">Pay invoices, manage payment methods, view history</div><span class="tile-badge action">$79 due</span></div>
+      <div class="tile" onclick="navigate('elections')"><div class="tile-icon">&#128499;&#65039;</div><div class="tile-label">Vote Now</div><div class="tile-sub">Cast your ballot &mdash; voting closes March 21</div><span class="tile-badge action">Vote</span></div>
+      <div class="tile" onclick="navigate('directory')"><div class="tile-icon">&#128101;</div><div class="tile-label">Member Directory</div><div class="tile-sub">Search 4,200+ members across 6 districts</div><span class="tile-badge neutral">Search</span></div>
+      <div class="tile" onclick="navigate('contribute')"><div class="tile-icon">&#128154;</div><div class="tile-label">Contribute to RPAC</div><div class="tile-sub">Support advocacy &mdash; you're at 50% of your pledge</div><span class="tile-badge warn">50%</span></div>
+      <div class="tile" onclick="navigate('resources')"><div class="tile-icon">&#128279;</div><div class="tile-label">Resources &amp; Tools</div><div class="tile-sub">MLS, zipForm, DotLoop, ShowingTime, and more</div><span class="tile-badge ok">6 links</span></div>
+      <div class="tile" onclick="navigate('store')"><div class="tile-icon">&#128717;&#65039;</div><div class="tile-label">Online Store</div><div class="tile-sub">Contract forms, toolkits, brand assets, and more</div><span class="tile-badge neutral">Browse</span></div>
     </div>
 
     <div class="grid-2 section-gap">
       <div class="card">
         <div class="card-title">Recent Activity <a href="#" onclick="return false">View all</a></div>
-        ${activity}
+        ${_activityHtml()}
       </div>
       <div class="card">
         <div class="card-title">CE Progress <a href="#" onclick="navigate('courses');return false">My Courses</a></div>
-        ${ceProgress}
+        ${_ceHtml()}
         <div class="mt-12"><button class="btn btn-primary btn-sm" onclick="navigate('courses')">Continue Learning &rarr;</button></div>
       </div>
     </div>
 
     <div class="card section-gap">
       <div class="card-title">Integrated Services <a href="#" onclick="navigate('resources');return false">All resources</a></div>
-      <div class="tile-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0">
+      <div class="tile-grid" style="margin-bottom:0">
         ${DATA.ssoServices.slice(0,4).map(s => `<div class="tile" onclick="navigate('resources')"><div class="tile-icon">${s.icon}</div><div class="tile-label">${s.name.split('\u2014')[0].trim()}</div></div>`).join('')}
       </div>
     </div>
 
-    <div class="card-title" style="margin-bottom:12px;margin-top:22px;">Board Content <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.78rem;color:var(--muted)">&mdash; Boards can embed custom HTML, JS, or iframes below</span></div>
-    <div class="widget-grid">
-      <div class="widget-card">
-        <div class="card-title" style="margin-bottom:8px;">Market Statistics</div>
-        <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">Active listings (Nov\u2013Mar)</div>
-        <div class="mini-chart"><div class="bar" style="height:30%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:45%"></div><div class="bar hi" style="height:80%"></div><div class="bar hi" style="height:70%"></div></div>
-        <div class="chart-labels"><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span></div>
-        <div style="font-size:.7rem;color:var(--muted);margin-top:6px;font-style:italic">Replace with your market data embed</div>
+    <div class="card-title" style="margin-bottom:12px;margin-top:22px;">Board Content <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.78rem;color:var(--muted)">&mdash; Custom HTML, JS, or iframes</span></div>
+    <div class="widget-grid">${_boardWidgets()}</div>`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// VARIATION 3 — POWER USER / OPERATOR VIEW
+// Dark mode, top-nav replaces sidebar, 3-column dense layout, command bar
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function dashboardPower() {
+  const deadlines = [
+    { date:'Mar 5', text:'RPAC Steering RSVP', badge:'badge-red', tag:'Overdue' },
+    { date:'Mar 12', text:'Fair Housing CE module', badge:'badge-amber', tag:'72%' },
+    { date:'Mar 21', text:'Election voting closes', badge:'badge-blue', tag:'Vote' },
+    { date:'Mar 30', text:'Invoice #5021 — $79', badge:'badge-red', tag:'$79' },
+    { date:'Jun 30', text:'CE credit deadline (4 left)', badge:'badge-amber', tag:'10/14' },
+  ];
+
+  return `
+    <div class="power-command-bar">
+      <div class="power-filters">
+        <button class="power-filter active" onclick="showToast('Filter: Overview')">Overview</button>
+        <button class="power-filter" onclick="showToast('Filter: My Actions')">My Actions</button>
+        <button class="power-filter" onclick="showToast('Filter: Calendar')">Calendar</button>
+        <button class="power-filter" onclick="showToast('Filter: Education')">Education</button>
+        <button class="power-filter" onclick="showToast('Filter: Billing')">Billing</button>
       </div>
-      <div class="widget-card">
-        <div class="card-title" style="margin-bottom:10px;">Board News</div>
-        <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>2026 Legislative Priorities Released</strong></p><span>Feb 28 &bull; Government Affairs</span></div></div>
-        <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>New forms library update live</strong></p><span>Feb 22 &bull; Education</span></div></div>
-        <div class="activity-item" style="padding:7px 0"><div class="activity-body"><p><strong>Member appreciation event &mdash; Apr 4</strong></p><span>Feb 15 &bull; Events</span></div></div>
+      <div class="power-summary">
+        <span>Status: <strong style="color:var(--success)">Active</strong></span>
+        <span>Balance: <strong style="color:var(--danger)">$79</strong></span>
+        <span>CE: <strong style="color:var(--warning)">10/14</strong></span>
+        <span>Actions: <strong>4</strong></span>
       </div>
-      ${widgets}
-      <div class="widget-add-card" onclick="openWidgetEditor()">
-        <div style="font-size:24px;color:var(--muted)">+</div>
-        <div style="font-size:.82rem;font-weight:600;color:var(--muted)">Add Custom Widget</div>
-        <div style="font-size:.74rem;color:#cbd5e1;text-align:center">Paste HTML, an iframe, or<br>any embed code here.</div>
+    </div>
+
+    <div class="power-grid">
+      <div>
+        <div class="card" style="padding:12px;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:8px">Quick Actions</div>
+          <div class="power-compact-tile" onclick="navigate('calendar')"><span class="pct-icon">&#128197;</span><span class="pct-label">Calendar</span><span class="pct-badge badge-blue">3</span></div>
+          <div class="power-compact-tile" onclick="navigate('courses')"><span class="pct-icon">&#127891;</span><span class="pct-label">Courses</span><span class="pct-badge badge-blue">2</span></div>
+          <div class="power-compact-tile" onclick="navigate('meetings')"><span class="pct-icon">&#128203;</span><span class="pct-label">Meetings</span><span class="pct-badge badge-red">!</span></div>
+          <div class="power-compact-tile" onclick="navigate('billing')"><span class="pct-icon">&#128179;</span><span class="pct-label">Billing</span><span class="pct-badge badge-red">$79</span></div>
+          <div class="power-compact-tile" onclick="navigate('elections')"><span class="pct-icon">&#128499;&#65039;</span><span class="pct-label">Elections</span><span class="pct-badge badge-amber">Vote</span></div>
+          <div class="power-compact-tile" onclick="navigate('directory')"><span class="pct-icon">&#128101;</span><span class="pct-label">Directory</span></div>
+          <div class="power-compact-tile" onclick="navigate('contribute')"><span class="pct-icon">&#128154;</span><span class="pct-label">RPAC</span><span class="pct-badge badge-amber">50%</span></div>
+          <div class="power-compact-tile" onclick="navigate('committees')"><span class="pct-icon">&#127963;&#65039;</span><span class="pct-label">Committees</span><span class="pct-badge badge-green">2</span></div>
+          <div class="power-compact-tile" onclick="navigate('store')"><span class="pct-icon">&#128717;&#65039;</span><span class="pct-label">Store</span></div>
+          <div class="power-compact-tile" onclick="navigate('resources')"><span class="pct-icon">&#128279;</span><span class="pct-label">Resources</span><span class="pct-badge badge-green">6</span></div>
+        </div>
+        <div class="card" style="padding:12px">
+          <div class="card-title" style="margin-bottom:8px">Services</div>
+          ${DATA.ssoServices.map(s => `<div class="power-compact-tile" onclick="navigate('resources')"><span class="pct-icon">${s.icon}</span><span class="pct-label">${s.name.split('\u2014')[0].trim()}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <div class="power-stat-row">
+          <div class="power-stat"><div class="power-stat-label">Membership</div><div class="power-stat-value" style="color:var(--success)">Active</div></div>
+          <div class="power-stat"><div class="power-stat-label">Balance</div><div class="power-stat-value" style="color:var(--danger)">$79.00</div></div>
+          <div class="power-stat"><div class="power-stat-label">CE Credits</div><div class="power-stat-value" style="color:var(--warning)">10 / 14</div></div>
+          <div class="power-stat"><div class="power-stat-label">Open Actions</div><div class="power-stat-value">4</div></div>
+        </div>
+        <div class="card" style="padding:12px;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:8px">CE Progress <a href="#" onclick="navigate('courses');return false">Courses &rarr;</a></div>
+          ${_ceHtml()}
+        </div>
+        <div class="card" style="padding:12px">
+          <div class="card-title" style="margin-bottom:8px">Upcoming Deadlines</div>
+          ${deadlines.map(d => `
+            <div class="power-deadline-row">
+              <span class="pd-date">${d.date}</span>
+              <span class="pd-text">${d.text}</span>
+              <span class="badge ${d.badge} pd-badge">${d.tag}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="padding:12px;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:8px">Activity Feed <a href="#" onclick="return false">All</a></div>
+          ${_activityHtml()}
+        </div>
+        <div class="card" style="padding:12px">
+          <div class="card-title" style="margin-bottom:8px">Widgets <a href="#" onclick="openWidgetEditor();return false">+ Add</a></div>
+          ${_boardWidgets()}
+        </div>
       </div>
     </div>`;
 }

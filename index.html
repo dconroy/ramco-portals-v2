@@ -8,18 +8,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/themes.css">
 </head>
-<body data-theme="original">
+<body data-theme="refined">
 
   <!-- Theme switcher demo bar -->
   <div class="theme-bar" id="theme-bar">
     <span class="theme-bar-label">RAMCO Portal Prototype</span>
     <div class="theme-bar-options">
-      <button class="theme-bar-btn active" data-theme="original" onclick="setTheme('original')">A &mdash; Current Iteration</button>
-      <button class="theme-bar-btn" data-theme="sleek" onclick="setTheme('sleek')">B &mdash; Sleek &amp; Professional</button>
-      <button class="theme-bar-btn" data-theme="warm" onclick="setTheme('warm')">C &mdash; Friendly &amp; Inviting</button>
+      <button class="theme-bar-btn active" data-theme="refined" onclick="setTheme('refined')">Refined Professional</button>
+      <button class="theme-bar-btn" data-theme="warm" onclick="setTheme('warm')">Warm &amp; Friendly</button>
+      <button class="theme-bar-btn" data-theme="power" onclick="setTheme('power')">Power User</button>
     </div>
   </div>
+
+  <!-- Power User top navigation (visible only in power theme) -->
+  <nav class="power-topnav" id="power-topnav">
+    <div class="power-topnav-brand">
+      <div class="power-topnav-logo">RA</div>
+      <span class="power-topnav-name">RAMCO</span>
+    </div>
+    <div class="power-topnav-links" id="power-nav-items"></div>
+    <div class="power-topnav-right">
+      <div class="power-topnav-search"><input type="text" placeholder="Search members, events, courses&hellip;"></div>
+      <div class="power-topnav-user">JL</div>
+    </div>
+  </nav>
 
   <!-- Mobile header -->
   <header class="mob-header">
