@@ -9,7 +9,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
 </head>
-<body>
+<body data-theme="original">
+
+  <!-- Theme switcher demo bar -->
+  <div class="theme-bar" id="theme-bar">
+    <span class="theme-bar-label">RAMCO Portal Prototype</span>
+    <div class="theme-bar-options">
+      <button class="theme-bar-btn active" data-theme="original" onclick="setTheme('original')">A &mdash; Current Iteration</button>
+      <button class="theme-bar-btn" data-theme="sleek" onclick="setTheme('sleek')">B &mdash; Sleek &amp; Professional</button>
+      <button class="theme-bar-btn" data-theme="warm" onclick="setTheme('warm')">C &mdash; Friendly &amp; Inviting</button>
+    </div>
+  </div>
 
   <!-- Mobile header -->
   <header class="mob-header">
