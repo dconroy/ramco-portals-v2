@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <title>Member Portal — Realtors Association</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <!-- Mobile header -->
+  <header class="mob-header">
+    <button class="hamburger" id="hamburger" aria-label="Open menu">&#9776;</button>
+    <span class="mob-logo">Realtors Association</span>
+    <div class="mob-avatar">JL</div>
+  </header>
+
+  <!-- Sidebar overlay -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <div class="sidebar-logo">RA</div>
+        <div class="sidebar-brand-text">
+          <strong>Realtors Association</strong>
+          <span>Member Portal</span>
+        </div>
+      </div>
+      <div class="sidebar-member-card">
+        <div class="name">Jordan Lee</div>
+        <div class="nrds">NRDS# 12345678 &bull; Dist. 4</div>
+        <div class="status-row">
+          <div class="status-dot"></div>
+          <span class="status-text">Active Membership</span>
+        </div>
+        <div class="balance">&#9888; $79 balance due &mdash; Mar 30</div>
+      </div>
+    </div>
+    <div class="sidebar-nav" id="nav-items">
+      <!-- Populated by app.js -->
+    </div>
+  </nav>
+
+  <!-- Main wrapper -->
+  <div class="main-wrap">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="page-title" id="topbar-title">Dashboard</span>
+        <span class="page-sub"  id="topbar-sub">Welcome back, Jordan</span>
+      </div>
+      <div class="topbar-right">
+        <div>
+          <div class="topbar-name">Jordan Lee</div>
+          <div class="topbar-sub">Residential Broker &bull; Member since 2018</div>
+        </div>
+        <div class="topbar-avatar">JL</div>
+      </div>
+    </div>
+
+    <!-- Page content injected here by app.js -->
+    <div class="main-content" id="main-content"></div>
+
+    <div class="portal-footer">
+      <span>Realtors Association Member Portal &bull; NRDS# 12345678</span>
+      <span><a href="#" onclick="return false">Support</a> &bull; <a href="#" onclick="return false">Privacy Policy</a></span>
+    </div>
+  </div>
+
+  <!-- Single shared modal -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal-box"></div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
