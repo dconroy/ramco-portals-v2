@@ -18,6 +18,7 @@
 .theme-bar-btn:hover { border-color: #52525b; color: #e4e4e7; background: #27272a; }
 .theme-bar-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 600; }
 
+body { padding-top: 38px; }
 .sidebar { top: 38px; height: calc(100vh - 38px); }
 .mob-header { top: 38px; }
 .topbar { top: 38px; }
@@ -26,6 +27,7 @@
   .theme-bar { gap: 6px; padding: 0 8px; font-size: .66rem; height: 36px; }
   .theme-bar-btn { padding: 2px 6px; font-size: .62rem; }
   .theme-bar-label { font-size: .66rem; }
+  body { padding-top: 36px; }
   .sidebar { top: 36px; height: calc(100vh - 36px); }
   .mob-header { top: 36px; }
 }
